@@ -42,6 +42,7 @@ def extract_test_case_metadata(source: str) -> str:
     return metadata
 
 
+
 def convert_to_grader_code(source: str) -> str:
     indented_source = textwrap.indent(source, '    ')
     
@@ -51,3 +52,17 @@ def convert_to_grader_code(source: str) -> str:
     converted_source = grader_template_code.replace('# TEST_CASE_REPLACE_HERE', indented_source)
     
     return converted_source
+
+
+
+def add_scripts_to_notebook(nb):
+    with open('jupyter-cell-scripts/prepend-to-start-of-notebook.py') as f:
+        prepend_script = f.read()
+        prepend_cell = new_code_cell(prepend_script)
+    
+    with open('jupyter-cell-scripts/append-to-end-of-notebook.py') as f:
+        append_script = f.read()
+        append_cell = new_code_cell(append_script)
+    
+    nb.cells.insert(0, prepend_cell)
+    nb.cells.append(append_cell)
