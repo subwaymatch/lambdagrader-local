@@ -1,5 +1,6 @@
 import glob
 import nbformat
+from nbformat.v4 import new_code_cell
 from nbconvert import HTMLExporter
 from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
 import re

@@ -24,7 +24,7 @@ def _record_test_case(test_case_name, did_pass, available_points, message=''):
     warning_message = ''
     
     if test_case_name in map(lambda x: x['test_case_name'], _graded_result['results']):
-        warning_message = f'[Warning] LambdaGrader: A duplicate test case name for {test_case_name} exists, duplicate items will be graded separately as well\n\n'
+        warning_message = f'[Warning] LambdaGrader: An identical test case name "{test_case_name}" already exists. Test cases with identical test case names will be graded \n\n'
 
     _graded_result['results'].append({
         'test_case_name': test_case_name,
