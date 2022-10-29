@@ -67,3 +67,36 @@ def add_scripts_to_notebook(nb):
     
     nb.cells.insert(0, prepend_cell)
     nb.cells.append(append_cell)
+
+
+
+def extract_user_code_from_cell_source(source: str) -> str:
+    tc_result = re.search(
+        r'.*# YOUR CODE BEGINS[\s\n]*(.*)# YOUR CODE ENDS',
+        source,
+        flags=re.MULTILINE | re.DOTALL
+    )
+    
+    if not tc_result or len(tc_result.groups()) == 0:
+        return None
+    
+    user_code = tc_result.groups()[0]
+    
+    user_code = user_code.rstrip()
+    
+    return user_code
+
+
+
+def extract_user_code_from_notebook(notebook_path: str) -> str:
+    full_code = ''
+    nb = nbformat.read(notebook_path, as_version=4)
+
+    for cell in nb.cells:
+        if cell.cell_type == 'code':
+            student_code = extract_user_code_from_cell_source(cell.source)
+
+            if student_code:
+                full_code += student_code + '\n\n'
+                
+    return full_code
