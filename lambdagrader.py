@@ -6,7 +6,7 @@ from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
 import re
 import textwrap
 
-def extract_test_case_metadata(source: str) -> str:
+def extract_test_case_metadata_from_cell(source: str) -> str:
     tc_result = re.search(
         r'^\s*_test_case\s*=\s*[\'"](.*)[\'"]',
         source,
@@ -41,6 +41,23 @@ def extract_test_case_metadata(source: str) -> str:
         metadata['grader_only'] = bool(grader_only_result.groups()[0])
     
     return metadata
+
+
+
+def extract_test_cases_metadata_from_notebook(notebook_path: str) -> str:
+    metadata_list = []
+    
+    nb = nbformat.read(notebook_path, as_version=4)
+
+    for cell in nb.cells:
+        if cell.cell_type == 'code':
+            test_case_metadata = extract_test_case_metadata_from_cell(cell.source)
+            
+            if test_case_metadata:
+                metadata_list.append(test_case_metadata)
+                
+    return metadata_list
+
 
 
 

@@ -5,6 +5,6 @@ try:
 # TEST_CASE_REPLACE_HERE
 except BaseException as ex:
     _did_pass = False
-    _message = ''.join(traceback.TracebackException.from_exception(ex).format())
+    _message = type(ex).__name__ + ': ' + str(ex)
 finally:
     _record_test_case(_test_case, _did_pass, _points, _message)
