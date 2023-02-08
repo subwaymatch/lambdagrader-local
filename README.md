@@ -32,7 +32,7 @@ LambdaGrader uses regular code cells and text cells without an extension to auth
 
 The instructor only authors one "solution" notebook. This notebook contains 
 
-### Code cell for the learners
+### Code cell for learners
 
 Any code between `# YOUR CODE BEGINS` and `# YOUR CODE ENDS` are stripped in the student version.
 
