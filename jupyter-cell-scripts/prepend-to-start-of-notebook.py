@@ -28,8 +28,8 @@ def _record_test_case(test_case_name, did_pass, available_points, message=''):
 
     _graded_result['results'].append({
         'test_case_name': test_case_name,
-        'available_points': available_points,
         'points': available_points if did_pass else 0,
+        'available_points': available_points,
         'pass': did_pass,
         'message': warning_message + message,
     })

@@ -160,3 +160,4 @@ cython_debug/
 #.idea/
 
 graded_result_*.csv
+test-notebooks/
