@@ -6,5 +6,6 @@ try:
 except BaseException as ex:
     _did_pass = False
     _message = type(ex).__name__ + ': ' + str(ex)
+    raise
 finally:
     _record_test_case(_test_case, _did_pass, _points, _message)
