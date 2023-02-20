@@ -23,4 +23,4 @@ for test_case_result in _graded_result['results']:
 print(_graded_result)
     
 with open(grader_output_file_name, 'w') as fp:
-    json.dump(_graded_result, fp)
+    json.dump(_graded_result, fp, indent=2)
