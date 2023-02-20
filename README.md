@@ -30,7 +30,7 @@ LambdaGrader uses regular code cells and text cells without an extension to auth
 
 ## Jupyter notebook format
 
-The instructor only authors one "solution" notebook. This notebook contains 
+The instructor only authors one "solution" notebook. This notebook contains both the solution code and test cases for all graded parts. Lambdagrader provides a simple drag & drop interface to generate a student-facing notebook which removes the solution codes and obfuscates test cases if required.
 
 ### Code cell for learners
 
@@ -147,4 +147,4 @@ Our current goal is to build a working version using the [Serverless framework](
 - Build a frontend with drag & drop box for graders.
 - Enable encryption for hidden test cases.
 - Detect any modifications to test cases using a hash.
-- Add plagiarism detection.
+- Add MOSS-like plagiarism detection using [copydetect](https://github.com/blingenf/copydetect).
