@@ -90,6 +90,15 @@ def convert_to_grader_code(source: str) -> str:
 
 
 
+def preprocess_test_case_cells(nb):
+    for cell in nb.cells:
+        if does_cell_contain_test_case(cell):
+            cell.source = convert_to_grader_code(cell.source)
+            
+    return nb
+
+            
+
 def add_grader_scripts(nb):
     with open('jupyter-cell-scripts/prepend-to-start-of-notebook.py') as f:
         prepend_script = f.read()
@@ -126,7 +135,6 @@ def extract_user_code_from_cell_source(source: str) -> str:
         return None
     
     user_code = tc_result.groups()[0]
-    
     user_code = user_code.rstrip()
     
     return user_code
