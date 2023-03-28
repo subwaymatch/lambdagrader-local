@@ -2,12 +2,17 @@ from nbformat.v4 import new_code_cell, new_markdown_cell
 import re
 import textwrap
 import pandas as pd
+import numpy as np
 import black
 import hashlib
+import copy
+from nbconvert import HTMLExporter
+from bs4 import BeautifulSoup
 
 test_case_name_pattern = r'^\s*_test_case\s*=\s*[\'"](.*)[\'"]'
 test_case_points_pattern = r'^\s*_points\s*=\s*(.*)[\s#]*.*[\r\n]'
-grader_only_pattern = r'^\s*_grader_only\s*=\s*(True|False)'
+manual_grading_pattern = r'^\s*_grade_manually\s*=\s*(True|False)'
+graded_results_element_id = '_graded_results'
 
 def extract_test_case_metadata_from_cell(source: str) -> str:
     tc_result = re.search(
@@ -22,7 +27,7 @@ def extract_test_case_metadata_from_cell(source: str) -> str:
     metadata = {
         'test_case': tc_result.groups()[0],
         'points': 0,
-        'grader_only': False
+        'grade_manually': False
     }
     
     points_result = re.search(
@@ -36,14 +41,14 @@ def extract_test_case_metadata_from_cell(source: str) -> str:
     if points_result and len(tc_result.groups()) > 0:
         metadata['points'] = float(points_result.groups()[0])
         
-    grader_only_result = re.search(
-        grader_only_pattern,
+    manual_grading_result = re.search(
+        manual_grading_pattern,
         source,
         flags=re.MULTILINE
     )
     
-    if grader_only_result and len(grader_only_result.groups()) > 0:
-        metadata['grader_only'] = bool(grader_only_result.groups()[0])
+    if manual_grading_result and len(manual_grading_result.groups()) > 0:
+        metadata['grade_manually'] = bool(manual_grading_result.groups()[0])
     
     return metadata
 
@@ -64,32 +69,53 @@ def extract_test_cases_metadata_from_notebook(nb) -> str:
 
 
 def does_cell_contain_test_case(cell) -> bool:
-    tc_result = re.search(
+    search_result = re.search(
         test_case_name_pattern,
         cell.source,
         flags=re.MULTILINE
     )
     
-    return tc_result and (len(tc_result.groups()) > 0)
+    return search_result and (len(search_result.groups()) > 0)
 
 
 
-def convert_to_grader_code(source: str) -> str:
-    indented_source = textwrap.indent(source, '    ')
+def is_manually_graded_test_case(cell) -> bool:
+    search_result = re.search(
+        manual_grading_pattern,
+        cell.source,
+        flags=re.MULTILINE
+    )
     
-    with open('jupyter-cell-scripts/grader-template.py') as f:
+    return search_result and (len(search_result.groups()) > 0)
+
+
+
+def convert_test_case_using_grader_template(cell) -> str:
+    if not does_cell_contain_test_case(cell):
+        # do nothing if not a test case cell
+        return
+    
+    source = cell.source
+    
+    if is_manually_graded_test_case(cell):
+        grader_template_code = 'jupyter-cell-scripts/grader-manual-template.py'
+        source = cell.source
+    else:
+        grader_template_code = 'jupyter-cell-scripts/grader-template.py'
+        source = textwrap.indent(cell.source, '    ')
+        
+    with open(grader_template_code) as f:
         grader_template_code = f.read()
         
-    converted_source = grader_template_code.replace('# TEST_CASE_REPLACE_HERE', indented_source)
+    converted_source = grader_template_code.replace('# TEST_CASE_REPLACE_HERE', source)
     
-    return converted_source
+    cell.source = converted_source
 
 
 
 def preprocess_test_case_cells(nb):
     for cell in nb.cells:
-        if does_cell_contain_test_case(cell):
-            cell.source = convert_to_grader_code(cell.source)
+        convert_test_case_using_grader_template(cell)
             
     return nb
 
@@ -120,6 +146,7 @@ def remove_grader_scripts(nb):
 
 # TODO: The current code only extracts code between # YOUR CODE BEGINS and # YOUR CODE ENDS
 # This will not work if a learner changes or deletes the comments
+# Unused, but may be useful later
 def extract_user_code_from_cell_source(source: str) -> str:
     tc_result = re.search(
         r'.*# YOUR CODE BEGINS[\s\n]*(.*)# YOUR CODE ENDS',
@@ -141,11 +168,8 @@ def extract_user_code_from_notebook(nb) -> str:
     full_code = ''
 
     for cell in nb.cells:
-        if cell.cell_type == 'code':
-            student_code = extract_user_code_from_cell_source(cell.source)
-
-            if student_code:
-                full_code += student_code + '\n\n'
+        if (cell.cell_type == 'code') and not does_cell_contain_test_case(cell) and cell.source:
+            full_code += cell.source + '\n\n'
                 
     return full_code
 
@@ -189,8 +213,14 @@ def get_test_cases_hash(nb) -> str:
 def generate_text_summary(graded_result) -> str:
     summary = ''
     summary += f"File: {graded_result['filename']}\n"
-    summary += f"Score: {graded_result['learner_score']} out of {graded_result['total_available']}\n"
-    summary += f"Passed {graded_result['num_passed_cases']} out of {graded_result['num_test_cases']} test cases\n"
+    summary += f"Autograded Score: {graded_result['learner_autograded_score']} out of {graded_result['max_autograded_score']}\n"
+    summary += f"Passed {graded_result['num_passed_cases']} out of {graded_result['num_autograded_cases']} autograded test cases\n"
+    
+    if graded_result['num_manually_graded_cases'] > 0:
+        summary += f"{graded_result['num_manually_graded_cases']} items will be graded manually.\n"
+        summary += f"{graded_result['max_manually_graded_score']} points are available on manually graded items.\n"
+        summary += f"{graded_result['max_total_score']} total points are available.\n"
+    
     summary += f"Grading took {graded_result['grading_duration_in_seconds']} seconds\n\n"
     summary += 'Test Case Summary\n'
 
@@ -206,49 +236,105 @@ def generate_text_summary(graded_result) -> str:
 
 
 def add_graded_result(nb, graded_result):
-    insert_index = 0
-    graded_result_cells = []
+    gr = graded_result
+    gr_cells = []
 
     # add result summary
-    graded_result_cells.append(new_markdown_cell('# 🧭 LambdaGrader Summary'))
-    graded_result_cells.append(new_markdown_cell('## Metadata'))
+    gr_cells.append(new_markdown_cell('# 🧭 LambdaGrader Summary'))
     
-    graded_result_dict_for_df = {
-        'graded_filename': graded_result['filename'],
-        'grading_finished_at': graded_result['grading_finished_at'],
-        'grading_duration': f"{graded_result['grading_duration_in_seconds']} second{'' if graded_result['grading_duration_in_seconds'] == 0 else 's'}",
-        '**learner_score**': f"**{graded_result['learner_score']}**",
-        'max_score': graded_result['total_available'],
-        'learner_score_in_percentage': f"{round(graded_result['learner_score'] / graded_result['total_available'] * 100, 2)}%",
-        'num_test_cases': graded_result['num_test_cases'],
-        'num_passed_cases': graded_result['num_passed_cases'],
-        'num_failed_cases': graded_result['num_failed_cases'],
-        'test_cases_hash': graded_result['test_cases_hash'],
-        'grader_python_version': f"Python {graded_result['grader_python_version']}",
-        'grader_platform': graded_result['grader_platform']
+    learner_score_in_percentage = f" ({round(gr['learner_autograded_score'] / gr['max_autograded_score'] * 100, 2)}%)" if gr['max_autograded_score'] != 0 else None
+    
+    gr_dict_for_df = {
+        '**Autograded Score**': f"**{gr['learner_autograded_score']} out of {gr['max_autograded_score']}** {learner_score_in_percentage}",
+        'Autograded Test Cases': f"Passed {gr['num_passed_cases']} out of {gr['num_autograded_cases']} cases",
+        'Pending Test Cases': f"⌛ {gr['num_manually_graded_cases']} item{'s' if gr['num_manually_graded_cases'] > 1 else ''} worth a total of {gr['max_manually_graded_score']} point{'s' if gr['max_manually_graded_score'] > 1 else ''} require manual grading",
+        'Total Available Points': gr['max_total_score'],
+        'Filename': gr['filename'],
+        'Autograder Finished At': gr['grading_finished_at'],
+        'Autograder Duration': f"{gr['grading_duration_in_seconds']} second{'' if gr['grading_duration_in_seconds'] == 0 else 's'}",
+        'Test Cases Checksum': gr['test_cases_hash'],
+        'Submission File Checksum': gr['submission_notebook_hash'],
+        'Autograder Python Version': f"Python {gr['grader_python_version']}",
+        'Autograder Platform': gr['grader_platform']
     }
     
+    if gr['num_manually_graded_cases'] == 0:
+        del gr_dict_for_df['Pending Test Cases']
+    
     df_metadata = pd.DataFrame({
-        'name': graded_result_dict_for_df.keys(),
-        'value': graded_result_dict_for_df.values()
+        'item': gr_dict_for_df.keys(),
+        'description': gr_dict_for_df.values()
     })
-    graded_result_cells.append(new_markdown_cell(df_metadata.to_markdown(index=False)))
+    gr_cells.append(new_markdown_cell(df_metadata.to_markdown(index=False)))
+    gr_cells.append(new_markdown_cell(f'<h2 id="{graded_results_element_id}">Test cases result</h2>'))
 
-    graded_result_cells.append(new_markdown_cell('## Test case results'))
 
-    df_r = pd.DataFrame(graded_result['results'])
-    df_r['pass'] = df_r['pass'].map({
-        True: '✔️ Pass', False: '❌ Fail'
-    })
+    tc_counts = {}
+    gr_results = gr['results'].copy()
+    
+    for o in gr_results:
+        tc_name_cleaned = re.sub(r'[^a-zA-Z0-9_-]', '', o['test_case_name'])
+        if tc_name_cleaned not in tc_counts:
+            tc_counts[tc_name_cleaned] = 0
+        tc_counts[tc_name_cleaned] += 1
+        anchor_id = f'{tc_name_cleaned}_id{tc_counts[tc_name_cleaned]}'
+        test_case_link = f"<a href='#{anchor_id}'>{o['test_case_name']}</a>"
+        o['test_case_name'] = test_case_link
+        
+    df_r = pd.DataFrame(gr_results)
+    
+    df_r.loc[df_r['grade_manually'], 'points'] = '-'
+    df_r['available_points'] = df_r['available_points'].astype(str)
+    
+    # inner function to generate a human-readable result
+    def get_human_readable_result(row):
+        if row['grade_manually']:
+            return '⌛ Requires manual grading'
+        else:
+            return '✔️ Pass' if row['pass'] else '❌ Fail'
+
+    df_r['pass'] = df_r.apply(get_human_readable_result, axis=1)
     df_r.rename(columns={
         'available_points': 'max_score',
-        'points': 'learner_score',
-        'pass': 'result'
+        'pass': 'result',
+        'points': 'learner_score'
     }, inplace=True)
+    df_r.drop(columns=['grade_manually'], inplace=True)
 
-    graded_result_cells.append(new_markdown_cell(df_r.to_markdown()))
-    graded_result_cells.append(new_markdown_cell('\n---\n'))
+    gr_cells.append(new_markdown_cell(df_r.to_markdown()))
+    gr_cells.append(new_markdown_cell('\n---\n'))
     
-    nb.cells = graded_result_cells + nb.cells
+    nb.cells = gr_cells + nb.cells
     
     return nb
+
+
+
+def save_graded_notebook_to_html(nb, html_title, output_path):
+    html_exporter = HTMLExporter()
+    r = html_exporter.from_notebook_node(nb, resources={
+       'metadata': { 'name': html_title }
+    })
+
+    # add in-page anchors for test case code cells
+    soup = BeautifulSoup(r[0], 'html.parser')
+    elements = soup.find_all('div', class_='jp-CodeCell')
+    tc_counts = {}
+
+    back_to_top_link_el = soup.new_tag("a")
+    back_to_top_link_el['href'] = f'#{graded_results_element_id}'
+    back_to_top_link_el.string = '↑ Scroll to Graded Results Summary'
+
+    for el in elements:
+        cell_code = el.find('div', class_='jp-Editor').getText().strip()
+        tc = extract_test_case_metadata_from_cell(cell_code)
+        if tc:
+            tc_name_cleaned = re.sub(r'[^a-zA-Z0-9_-]', '', tc['test_case'])
+            if tc_name_cleaned not in tc_counts:
+                tc_counts[tc_name_cleaned] = 0
+            tc_counts[tc_name_cleaned] += 1
+            el['id'] = f"{tc_name_cleaned}_id{tc_counts[tc_name_cleaned]}"
+            el.append(copy.copy(back_to_top_link_el))
+
+    with open(output_path, 'w', encoding="utf-8") as f:
+        f.write(soup.prettify())
