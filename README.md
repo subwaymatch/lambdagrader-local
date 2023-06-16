@@ -14,17 +14,18 @@ Another goal of this project is to make it easy for instructors to author a Jupy
 
 ![lambdagrader-diagram-01](https://user-images.githubusercontent.com/1064036/217484470-ab7406ce-bc0b-46a5-bbb2-17bb5fa8a2c7.png)
 
-### Why not [nbgrader](https://github.com/jupyter/nbgrader)?
+### What about [nbgrader](https://github.com/jupyter/nbgrader)?
 
-[nbgrader](https://github.com/jupyter/nbgrader) is widely used and is a great way to autograde Jupyter notebook assignments. 
-I've personally used nbgrader in the past and it worked well.
-However, there were a few limitations for our use case.
+[nbgrader](https://github.com/jupyter/nbgrader) is widely used and is a great tool to auto-grade Jupyter notebook assignments. 
+I've personally used nbgrader in the past.
 
-- Creating an nbgrader assignment requires the nbgrader Jupyter Lab extension.
-- Working with multiple graders is challenging unless a JupyterHub shared by the instructional team is set up.
+However, there are notable limitations to common use cases.
+
+- Creating an nbgrader assignment requires the nbgrader JupyterLab extension.
+- Working with multiple graders is challenging unless a shared JupyterHub is used by the instructional team.
 - nbgrader uses cell metadata, which cannot be viewed/edited in some Jupyter environments (e.g., [Google Colab](https://colab.research.google.com/)).
 - There is a steep learning curve for graders who are not familiar with nbgrader.
-- Concurrent grading occasionally crashed the server. For example, ~50 students submitting a graded quiz at the same time caused the grading to fail for multiple students. This may be specific to [Vocareum](https://vocareum.com/).
+- Concurrent grading can crash the server. For example, ~50 students submitting a graded notebook at the same time caused the grading to fail for multiple students.
 
 LambdaGrader uses regular code cells and text cells without an extension to author an autogradable Jupyter notebook.
 
