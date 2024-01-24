@@ -7,8 +7,7 @@ import datetime
 grading_start_time = datetime.datetime.now(datetime.timezone.utc)
 
 _graded_result = {
-    'grading_finished_at': None,
-    'grading_duration_in_seconds': 0,
+    'filename': None,
     'learner_autograded_score': 0,
     'max_autograded_score': 0,
     'max_manually_graded_score': 0,
@@ -18,7 +17,9 @@ _graded_result = {
     'num_failed_cases': 0,
     'num_manually_graded_cases': 0,
     'num_total_test_cases': 0,
-    'results': []
+    'grading_finished_at': None,
+    'grading_duration_in_seconds': 0,
+    'results': [],
 }
 
 is_lambdagrader_env = True

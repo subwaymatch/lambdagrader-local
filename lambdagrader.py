@@ -373,108 +373,104 @@ def save_graded_notebook_to_html(nb, html_title, output_path, graded_result):
         
         item_el = soup.new_tag("a")
         item_el.string = item_icon
-        item_el['class'] = f'graded-item-link pass {item_status_classname}'
+        item_el['class'] = f'graded-item-link {item_status_classname}'
         item_el['href'] = f'#{anchor_id}'
-        item_el['data-text'] = f"{o['test_case_name']} ({o['points']} out of {o['available_points']} points)"
+        item_el['data-text'] = o['test_case_name'] + " " + ("(manual grading required)" if o['grade_manually'] else f"({o['points']} out of {o['available_points']})")
         lambda_grader_sidebar_container_el.append(item_el)
         
     # insert css
     head = soup.head
 
     lambdagrader_sidebar_css = '''
-      html {
-        scroll-behavior: smooth;
-      }
-
-      .lambda-grader-sidebar-container {
-        background-color: #f5f5f5;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 36px;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        z-index: 999;
-      }
-
-      .graded-item-link {
-        flex: 1;
-        position: relative;
-        margin-bottom: 1px;
-        color: #777;
-        background-color: #000;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        text-align: center;
-        font-size: 16px;
-      }
-
-      .graded-item-link:hover {
-        color: #fff;
-      }
-
-      .graded-item-link.back-to-top {
-        background-color: #2196F3;
-      }
-
-      .graded-item-link.pass {
-        border-right: 8px solid #4CAF50;
-      }
-
-      .graded-item-link.fail {
-        border-right: 8px solid #F44336;
-      }
-
-      .graded-item-link.manual-grading-required {
-        border-right: 8px solid #FFEB3B;
-      }
-
-      /* tooltip */
-      .graded-item-link:before {
-        content: attr(data-text); /* here's the magic */
-        position:absolute;
-        font-size: 14px;
-
-        /* vertically center */
-        top:50%;
-        transform:translateY(-50%);
-
-        /* move to right */
-        left:100%;
-
-        /* basic styles */
-        width:300px;
-        padding:10px;
-        background:#fff;
-        color: #000;
-        border: 4px solid #000;
-        text-align:left;
-
-        display:none; /* hide by default */
-      }
-
-      .graded-item-link.back-to-top:before {
-        border-color: #2196F3;
-      }
-
-      .graded-item-link.pass:before {
-        border-color: #4CAF50;
-      }
-
-      .graded-item-link.fail:before {
-        border-color: #F44336;
-      }
-
-      .graded-item-link.manual-grading-required:before {
-        border-color: #FFEB3B;
-      }
-
-      .graded-item-link:hover:before {
-        display:block;
-      }
-    '''
+html {
+  scroll-behavior: smooth;
+}
+.lambda-grader-sidebar-container {
+  background-color: #f5f5f5;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+}
+.graded-item-link {
+  flex: 1;
+  position: relative;
+  margin-bottom: 1px;
+  color: #777;
+  background-color: #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  font-size: 12px;
+}
+.graded-item-link:hover {
+  color: #fff;
+  position: relative;
+  z-index: 1;
+}
+.graded-item-link.back-to-top {
+  background-color: #2196f3;
+}
+.graded-item-link.pass {
+  border-right: 8px solid #4caf50;
+}
+.graded-item-link.pass:hover {
+  background-color: #4caf50;
+}
+.graded-item-link.fail {
+  border-right: 8px solid #f44336;
+}
+.graded-item-link.fail:hover {
+  background-color: #f44336;
+}
+.graded-item-link.manual-grading-required {
+  border-right: 8px solid #ffeb3b;
+}
+.graded-item-link.manual-grading-required:hover {
+  background-color: #ffeb3b;
+}
+/* tooltip */
+.graded-item-link:before {
+  content: attr(data-text);
+  /* here's the magic */
+  position: absolute;
+  font-size: 14px;
+  /* vertically center */
+  top: 50%;
+  transform: translateY(-50%);
+  /* move to right */
+  left: 100%;
+  /* basic styles */
+  width: 300px;
+  padding: 10px;
+  background: #fff;
+  color: #000;
+  border: 4px solid #000;
+  text-align: left;
+  display: none;
+  /* hide by default */
+}
+.graded-item-link.back-to-top:before {
+  border-color: #2196f3;
+}
+.graded-item-link.pass:before {
+  border-color: #4caf50;
+}
+.graded-item-link.fail:before {
+  border-color: #f44336;
+}
+.graded-item-link.manual-grading-required:before {
+  border-color: #ffeb3b;
+}
+.graded-item-link:hover:before {
+  display: block;
+}
+'''
     
     new_style = soup.new_tag('style', type='text/css')
     new_style.append(lambdagrader_sidebar_css)
