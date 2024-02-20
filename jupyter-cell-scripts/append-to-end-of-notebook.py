@@ -1,5 +1,8 @@
 # LambdaGrader After File Code
 # REMOVE_IN_HTML_OUTPUT
+import json
+import datetime
+
 grader_output_file_name = 'lambdagrader-result.json'
 grading_end_time = datetime.datetime.now(datetime.timezone.utc)
 

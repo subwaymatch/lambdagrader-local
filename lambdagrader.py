@@ -286,7 +286,7 @@ def add_graded_result(nb, graded_result):
     # replace test_case_name column with linked texts
     df_r['test_case_name'] = df_r['test_case_link']
     
-    df_r.loc[df_r['grade_manually'], 'points'] = '-'
+    df_r.loc[df_r['grade_manually'], 'points'] = np.nan
     df_r['available_points'] = df_r['available_points'].astype(str)
     
     # inner function to generate a human-readable result
