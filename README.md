@@ -140,6 +140,24 @@ if 'is_lambdagrader_env' in globals():
     pd.testing.assert_series_equal(sample_series, pd.Series([-20, -10, 10, 20]))
 ```
 
+## Utility functions
+
+### Replace test cases
+
+If a test case needs to be updated, use the `lambdagrader.replace_test_case()` function.
+
+```python
+nb = nbformat.read(notebook_path, as_version=4)
+
+new_test_cases = {
+    'test-case-01': '_test_case = "test_case_01"\n_points = 6\n\npass',
+    'test-case-02': '_test_case = "test_case_02"\n_points = 3\n\npass'
+}
+
+for tc_name, new_tc_code in new_test_cases.items():
+    lambdagrader.replace_test_case(nb, tc_name, new_tc_code)
+```
+
 ## Roadmap
 
 Our current goal is to build a working version using the [Serverless framework](https://www.serverless.com/). In the long term, we are looking to...
@@ -148,4 +166,4 @@ Our current goal is to build a working version using the [Serverless framework](
 - Build a frontend with drag & drop box for graders.
 - Enable encryption for hidden test cases.
 - Detect any modifications to test cases using a hash.
-- Add MOSS-like plagiarism detection using [copydetect](https://github.com/blingenf/copydetect).
+- ~~Add MOSS-like plagiarism detection using [copydetect](https://github.com/blingenf/copydetect).~~ copydetect is not as effective as MOSS - cancelled
