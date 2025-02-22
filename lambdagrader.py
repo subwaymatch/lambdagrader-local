@@ -91,10 +91,6 @@ def is_manually_graded_test_case(cell) -> bool:
 
 
 def convert_test_case_using_grader_template(cell) -> str:
-    if not does_cell_contain_test_case(cell):
-        # do nothing if not a test case cell
-        return
-    
     source = cell.source
     
     if is_manually_graded_test_case(cell):
@@ -115,7 +111,8 @@ def convert_test_case_using_grader_template(cell) -> str:
 
 def preprocess_test_case_cells(nb):
     for cell in nb.cells:
-        convert_test_case_using_grader_template(cell)
+        if does_cell_contain_test_case(cell):
+            convert_test_case_using_grader_template(cell)
             
     return nb
 
@@ -172,6 +169,18 @@ def extract_user_code_from_notebook(nb) -> str:
             full_code += cell.source + '\n\n'
                 
     return full_code
+
+
+
+# Replace test case
+# This function can be used when there is an error with the test case code
+def replace_test_case(nb, test_case_name, new_test_case_code) -> str:
+    for cell in nb.cells:
+        if (cell.cell_type == 'code') and does_cell_contain_test_case(cell):
+            test_case_metadata = extract_test_case_metadata_from_cell(cell.source)
+            
+            if test_case_metadata['test_case'] == test_case_name:
+                cell.source = new_test_case_code
 
 
 
