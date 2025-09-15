@@ -1,3 +1,5 @@
+📢 This project is now available as the [jupygrader](https://github.com/subwaymatch/jupygrader) package. All future updates will be maintained in the new repository.
+
 # LambdaGrader
 
 Grade Jupyter notebooks on AWS Lambda
